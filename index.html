@@ -1,0 +1,328 @@
+<!doctype html>
+<html lang="th">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width,initial-scale=1">
+<title>ระบบจัดทำใบจ่ายเงินเดือน</title>
+<style>
+@import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
+:root{--ink:#20252b;--muted:#667085;--line:#d9dee4;--bg:#f5f7f9;--card:#fff;--accent:#1f2937}
+*{box-sizing:border-box}
+body{margin:0;background:var(--bg);color:var(--ink);font-family:"Noto Sans Thai",Arial,sans-serif}
+button,input,select{font:inherit}
+.app{max-width:1180px;margin:auto;padding:24px}
+.header{display:flex;justify-content:space-between;align-items:center;gap:16px;margin-bottom:18px}
+.header h1{font-size:25px;margin:0}.header p{margin:4px 0 0;color:var(--muted);font-size:13px}
+.nav{display:flex;gap:8px;margin-bottom:16px;flex-wrap:wrap}
+.nav button{border:1px solid var(--line);background:#fff;padding:10px 16px;border-radius:9px;cursor:pointer}
+.nav button.active{background:var(--accent);color:#fff;border-color:var(--accent)}
+.page{display:none}.page.active{display:block}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:18px}
+.card{background:var(--card);border:1px solid var(--line);border-radius:14px;padding:18px}
+.card h2,.card h3{margin-top:0}.card h2{font-size:19px}.card h3{font-size:16px;margin-bottom:14px}
+label{display:block;font-weight:600;font-size:14px;margin-bottom:12px}
+input,select{width:100%;border:1px solid #cbd2d9;border-radius:8px;padding:10px 12px;background:#fff;margin-top:6px}
+select{cursor:pointer}
+.row{display:grid;grid-template-columns:minmax(0,1fr) 150px 42px;gap:8px;margin-bottom:8px}
+.row input{margin:0}.row button{border:0;border-radius:8px;background:#eef1f4;cursor:pointer}
+.actions{display:flex;gap:8px;flex-wrap:wrap;margin-top:12px}
+.btn{border:1px solid var(--line);background:#fff;border-radius:9px;padding:10px 15px;cursor:pointer}
+.btn.primary{background:var(--accent);color:#fff;border-color:var(--accent)}
+.btn.danger{color:#a12a2a}
+.notice{font-size:13px;color:var(--muted);margin:8px 0 0}
+.employee-list{display:grid;gap:10px;margin-top:14px}
+.employee-item{border:1px solid var(--line);border-radius:10px;padding:12px;display:flex;justify-content:space-between;gap:12px;align-items:center}
+.employee-main{min-width:0}.employee-main strong{display:block}.employee-main span{font-size:12px;color:var(--muted)}
+.totals{margin-top:16px;border-top:1px solid var(--line);padding-top:12px}
+.total{display:flex;justify-content:space-between;margin:7px 0}.net{font-size:20px;font-weight:700}
+.paper{background:#fff;width:210mm;min-height:297mm;margin:18px auto;padding:18mm;box-shadow:0 4px 20px #0002}
+.paper h2{text-align:center;margin:0 0 22px}.company{text-align:center;font-weight:700;font-size:18px;margin-bottom:18px}
+.meta{display:grid;grid-template-columns:1fr 1fr;gap:8px 28px;margin-bottom:18px}
+table{width:100%;border-collapse:collapse;margin:10px 0 20px}th,td{border:1px solid #cfd5da;padding:8px}th{text-align:left}td:last-child,th:last-child{text-align:right}
+.empty{padding:16px;border:1px dashed var(--line);border-radius:10px;color:var(--muted);text-align:center}.doc-footer{margin-top:28px;padding-top:10px;border-top:1px solid #d9dee4;display:flex;justify-content:space-between;gap:16px;font-size:11px;color:#667085}
+@media(max-width:850px){.grid{grid-template-columns:1fr}.paper{width:100%;min-height:auto;padding:12mm}.meta{grid-template-columns:1fr}.row{grid-template-columns:minmax(0,1fr) 120px 42px}}
+@media print{
+  body{background:#fff}
+  .app{display:none!important}
+  .paper{box-shadow:none;margin:0;width:210mm;min-height:297mm;padding:14mm}
+  @page{size:A4;margin:0}
+}
+</style>
+</head>
+<body>
+<div class="app">
+  <div class="header">
+    <div><h1>ระบบจัดทำใบจ่ายเงินเดือน</h1><p>เลือกพนักงานแล้วระบบเติมรหัสและตำแหน่งให้อัตโนมัติ</p></div>
+    <button class="btn primary" id="printBtn">พิมพ์ / บันทึก PDF</button>
+  </div>
+
+  <div class="nav">
+    <button class="active" data-page="slipPage">สร้างใบจ่ายเงิน</button>
+    <button data-page="employeePage">ข้อมูลพนักงาน</button>
+  </div>
+
+  <section class="page active" id="slipPage">
+    <div class="grid">
+      <div class="card">
+        <h2>ข้อมูลบริษัทและการจ่าย</h2>
+        <label>ชื่อบริษัท<input id="companyName" value="บริษัทของคุณ"></label>
+        <label>เลือกพนักงาน
+          <select id="employeeSelect"></select>
+        </label>
+        <label>รหัสพนักงาน<input id="employeeId" readonly></label>
+        <label>ตำแหน่ง<input id="position" readonly></label>
+        <label>รอบเงินเดือน<input id="period" placeholder="เช่น 1–30 กันยายน 2026"></label>
+        <label>วันที่จ่าย<input id="payDate" type="date"></label>
+        <p class="notice" id="browserFooterNote">วันที่และเวลาจะพิมพ์อยู่ในเอกสารโดยอัตโนมัติ ส่วน ปุ่มดาวน์โหลด PDF จะสร้างไฟล์ PDF โดยตรงจากข้อมูลในระบบ จึงไม่มี URL/เลขหน้าจากเบราว์เซอร์ และยังคงวันที่/เวลาเอกสาร</p>
+      </div>
+
+      <div class="card">
+        <h2>รายการเงินเดือน</h2>
+        <h3>รายการรับ</h3><div id="incomeRows"></div>
+        <button class="btn" type="button" id="addIncome">+ เพิ่มรายการรับ</button>
+        <h3 style="margin-top:22px">รายการหัก</h3><div id="deductionRows"></div>
+        <button class="btn" type="button" id="addDeduction">+ เพิ่มรายการหัก</button>
+        <h3 style="margin-top:22px">สวัสดิการที่บริษัทออกให้</h3><div id="benefitRows"></div>
+        <button class="btn" type="button" id="addBenefit">+ เพิ่มสวัสดิการ</button>
+        <div class="totals">
+          <div class="total"><span>รวมรายรับ</span><b id="gross">0.00 ฿</b></div>
+          <div class="total"><span>รวมรายการหัก</span><b id="dedTotal">0.00 ฿</b></div><div class="total"><span>สวัสดิการที่บริษัทออกให้</span><b id="benefitTotal">0.00 ฿</b></div>
+          <div class="total net"><span>รับสุทธิ</span><span id="net">0.00 ฿</span></div>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="page" id="employeePage">
+    <div class="grid">
+      <div class="card">
+        <h2>กรอกข้อมูลพนักงาน</h2>
+        <form id="employeeForm">
+          <label>ชื่อพนักงาน<input id="newName" required placeholder="เช่น สมชาย ใจดี"></label>
+          <label>รหัสพนักงาน<input id="newId" required placeholder="เช่น EMP-001"></label>
+          <label>ตำแหน่ง<input id="newPosition" required placeholder="เช่น เจ้าหน้าที่"></label>
+          <label>ฐานเงินเดือน<input id="newSalary" type="number" min="0" step="0.01" placeholder="เช่น 17000"></label>
+          <div class="actions">
+            <button class="btn primary" type="submit">บันทึกพนักงาน</button>
+            <button class="btn" type="button" id="clearEmployee">ล้างฟอร์ม</button>
+          </div>
+        </form>
+        <p class="notice">ข้อมูลพนักงานและฐานเงินเดือนจะถูกเก็บไว้ในเครื่องนี้ เมื่อเลือกพนักงาน ระบบจะเติมฐานเงินเดือนลงในรายการ “เงินเดือน” ให้อัตโนมัติ</p>
+      </div>
+      <div class="card">
+        <h2>รายชื่อพนักงาน</h2>
+        <div id="employeeList"></div>
+      </div>
+    </div>
+  </section>
+</div>
+
+<div class="paper" id="paper">
+  <h2>ใบจ่ายเงินเดือน / PAYSLIP</h2>
+  <div class="company" id="previewCompany"></div>
+  <div class="meta">
+    <div><b>พนักงาน:</b> <span id="previewEmployee"></span></div>
+    <div><b>รหัสพนักงาน:</b> <span id="previewEmployeeId"></span></div>
+    <div><b>ตำแหน่ง:</b> <span id="previewPosition"></span></div>
+    <div><b>รอบเงินเดือน:</b> <span id="previewPeriod"></span></div>
+    <div><b>วันที่จ่าย:</b> <span id="previewDate"></span></div>
+  </div>
+  <h3>รายรับ</h3>
+  <table><thead><tr><th>รายการ</th><th>จำนวนเงิน</th></tr></thead><tbody id="previewIncome"></tbody></table>
+  <h3>รายการหัก</h3>
+  <table><thead><tr><th>รายการ</th><th>จำนวนเงิน</th></tr></thead><tbody id="previewDeduction"></tbody></table>
+  <h3>สวัสดิการที่บริษัทออกให้</h3>
+  <table><thead><tr><th>รายการ</th><th>จำนวนเงิน</th></tr></thead><tbody id="previewBenefit"></tbody></table>
+  <table>
+    <tr><th>รวมรายรับ</th><th id="pGross">0.00 ฿</th></tr>
+    <tr><th>รวมรายการหัก</th><th id="pDed">0.00 ฿</th></tr><tr><th>สวัสดิการที่บริษัทออกให้</th><th id="pBenefit">0.00 ฿</th></tr>
+    <tr><th>รับสุทธิ</th><th id="pNet">0.00 ฿</th></tr>
+  </table>
+
+  <div class="doc-footer">
+    <span>จัดทำเอกสารวันที่ <b id="previewPrintDate"></b></span>
+    <span>เวลา <b id="previewPrintTime"></b> น.</span>
+  </div>
+</div>
+
+<script>
+(function(){
+  const KEY='payrollEmployeesV3';
+  const defaultEmployees=[
+    {id:'EMP-001',name:'สมชาย ใจดี',position:'เจ้าหน้าที่',salary:0}
+  ];
+  const state={
+    employees:loadEmployees(),
+    income:[['เงินเดือน','']],
+    deduction:[['ขาดงาน',''],['เบิกเงินล่วงหน้า','']],benefit:[['ประกันสังคม — บริษัทจ่ายให้','0']]
+  };
+
+  function loadEmployees(){
+    try{
+      const raw=localStorage.getItem(KEY);
+      const data=raw?JSON.parse(raw):defaultEmployees;
+      return Array.isArray(data)?data.filter(x=>x&&x.id&&x.name&&x.position).map(x=>({...x,salary:Math.max(0,Number(x.salary)||0)})):defaultEmployees;
+    }catch(e){return defaultEmployees}
+  }
+  function saveEmployees(){try{localStorage.setItem(KEY,JSON.stringify(state.employees))}catch(e){}}
+  function money(n){return Number.isFinite(n)?n.toLocaleString('th-TH',{minimumFractionDigits:2,maximumFractionDigits:2})+' ฿':'0.00 ฿'}
+  function esc(s){return String(s).replace(/[&<>"']/g,m=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[m]))}
+
+  function mountRows(type){
+    const el=document.getElementById(type+'Rows');el.innerHTML='';
+    state[type].forEach((r,i)=>{
+      const d=document.createElement('div');d.className='row';
+      const name=document.createElement('input');name.value=r[0];name.placeholder='รายการ';
+      const value=document.createElement('input');value.type='number';value.min='0';value.step='0.01';value.value=r[1];value.placeholder='0.00';
+      const del=document.createElement('button');del.type='button';del.textContent='×';del.title='ลบรายการ';
+      name.addEventListener('input',e=>{r[0]=e.target.value;update()});
+      value.addEventListener('input',e=>{r[1]=e.target.value;update()});
+      del.addEventListener('click',()=>{state[type].splice(i,1);mountRows(type);update()});
+      d.append(name,value,del);el.appendChild(d);
+    });
+  }
+
+  function mountEmployeeSelect(){
+    const select=document.getElementById('employeeSelect');
+    select.innerHTML='';
+    if(!state.employees.length){
+      const o=document.createElement('option');o.value='';o.textContent='ยังไม่มีข้อมูลพนักงาน — ไปที่ "ข้อมูลพนักงาน"';select.appendChild(o);
+      select.disabled=true;
+      setEmployeeFields(null);
+      return;
+    }
+    select.disabled=false;
+    state.employees.forEach((e,i)=>{
+      const o=document.createElement('option');o.value=String(i);o.textContent=e.name;select.appendChild(o);
+    });
+    setEmployeeFields(state.employees[0]);
+  }
+
+  function setEmployeeFields(e){
+    document.getElementById('employeeId').value=e?e.id:'';
+    document.getElementById('position').value=e?e.position:'';
+    if(state.income.length){
+      state.income[0][0]='เงินเดือน';
+      state.income[0][1]=e?String(Math.max(0,Number(e.salary)||0)):'';
+      mountRows('income');
+    }
+    update();
+  }
+
+  function renderEmployeeList(){
+    const el=document.getElementById('employeeList');el.innerHTML='';
+    if(!state.employees.length){el.innerHTML='<div class="empty">ยังไม่มีข้อมูลพนักงาน</div>';return}
+    state.employees.forEach((e,i)=>{
+      const item=document.createElement('div');item.className='employee-item';
+      item.innerHTML='<div class="employee-main"><strong>'+esc(e.name)+'</strong><span>'+esc(e.id)+' · '+esc(e.position)+' · ฐานเงินเดือน '+money(Math.max(0,Number(e.salary)||0))+'</span></div>';
+      const actions=document.createElement('div');
+      const edit=document.createElement('button');edit.className='btn';edit.type='button';edit.textContent='แก้ไข';
+      const del=document.createElement('button');del.className='btn danger';del.type='button';del.textContent='ลบ';
+      edit.addEventListener('click',()=>{
+        document.getElementById('newName').value=e.name;
+        document.getElementById('newId').value=e.id;
+        document.getElementById('newPosition').value=e.position;
+        document.getElementById('newSalary').value=Number(e.salary)||0;
+        document.querySelector('[data-page="employeePage"]').click();
+      });
+      del.addEventListener('click',()=>{
+        if(!confirm('ลบข้อมูลพนักงาน '+e.name+' หรือไม่?'))return;
+        state.employees.splice(i,1);saveEmployees();mountEmployeeSelect();renderEmployeeList();
+      });
+      actions.append(edit,del);item.appendChild(actions);el.appendChild(item);
+    });
+  }
+
+  function updatePrintDateTime(){
+    const now=new Date();
+    document.getElementById('previewPrintDate').textContent=now.toLocaleDateString('th-TH',{day:'2-digit',month:'2-digit',year:'numeric'});
+    document.getElementById('previewPrintTime').textContent=now.toLocaleTimeString('th-TH',{hour:'2-digit',minute:'2-digit',second:'2-digit'});
+  }
+
+
+  function printClean(){
+    updatePrintDateTime();
+    const paper=document.querySelector('.paper');
+    if(!paper){window.print();return;}
+    const w=window.open('','_blank','width=900,height=1100');
+    if(!w){window.print();return;}
+    const styles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
+    w.document.open();
+    w.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><title></title>'+styles+
+      '<style>@page{size:A4;margin:0}html,body{margin:0!important;background:#fff!important}.paper{display:block!important;box-shadow:none!important;margin:0!important;max-width:none!important}</style>'+
+      '</head><body>'+paper.outerHTML+
+      '<script>window.onload=function(){setTimeout(function(){window.print()},150)}<\/script></body></html>');
+    w.document.close();
+  }
+
+
+
+  function update(){
+    const company=document.getElementById('companyName').value;
+    const select=document.getElementById('employeeSelect');
+    const e=select.value!==''?state.employees[Number(select.value)]:null;
+    document.getElementById('previewCompany').textContent=company;
+    document.getElementById('previewEmployee').textContent=e?e.name:'';
+    document.getElementById('previewEmployeeId').textContent=e?e.id:'';
+    document.getElementById('previewPosition').textContent=e?e.position:'';
+    document.getElementById('previewPeriod').textContent=document.getElementById('period').value;
+    const date=document.getElementById('payDate').value;
+    document.getElementById('previewDate').textContent=date?new Date(date+'T00:00:00Z').toLocaleDateString('th-TH',{timeZone:'UTC'}):'';
+    let gross=0,ded=0;
+    [['income','previewIncome'],['deduction','previewDeduction'],['benefit','previewBenefit']].forEach(([type,pid])=>{
+      const tb=document.getElementById(pid);tb.innerHTML='';
+      state[type].forEach(r=>{
+        const v=Math.max(0,Number(r[1])||0);
+        if(type==='income')gross+=v;
+        if(type==='deduction')ded+=v;
+        const tr=document.createElement('tr');
+        tr.innerHTML='<td>'+esc(r[0])+'</td><td>'+money(v)+'</td>';
+        tb.appendChild(tr);
+      });
+    });
+    const benefitTotal=state.benefit.reduce((a,r)=>a+(Number(r[1])||0),0);
+    const net=gross-ded;
+    document.getElementById('gross').textContent=money(gross);
+    document.getElementById('dedTotal').textContent=money(ded);
+    document.getElementById('benefitTotal').textContent=money(benefitTotal);
+    document.getElementById('net').textContent=money(net);
+    document.getElementById('pGross').textContent=money(gross);
+    document.getElementById('pDed').textContent=money(ded);
+    document.getElementById('pBenefit').textContent=money(benefitTotal);
+    document.getElementById('pNet').textContent=money(net);
+  }
+
+  document.querySelectorAll('.nav button').forEach(btn=>btn.addEventListener('click',()=>{
+    document.querySelectorAll('.nav button').forEach(b=>b.classList.remove('active'));
+    document.querySelectorAll('.page').forEach(p=>p.classList.remove('active'));
+    btn.classList.add('active');document.getElementById(btn.dataset.page).classList.add('active');
+  }));
+  document.getElementById('employeeSelect').addEventListener('change',e=>setEmployeeFields(state.employees[Number(e.target.value)]||null));
+  document.getElementById('addIncome').addEventListener('click',()=>{state.income.push(['','']);mountRows('income');update()});
+  document.getElementById('addDeduction').addEventListener('click',()=>{state.deduction.push(['','']);mountRows('deduction');update()});
+  document.getElementById('addBenefit').addEventListener('click',()=>{state.benefit.push(['','']);mountRows('benefit');update()});
+  ['companyName','period','payDate'].forEach(id=>document.getElementById(id).addEventListener('input',update));
+  document.getElementById('printBtn').addEventListener('click',()=>window.print());
+
+  document.getElementById('employeeForm').addEventListener('submit',e=>{
+    e.preventDefault();
+    const name=document.getElementById('newName').value.trim();
+    const id=document.getElementById('newId').value.trim();
+    const position=document.getElementById('newPosition').value.trim();
+    const salary=Math.max(0,Number(document.getElementById('newSalary').value)||0);
+    if(!name||!id||!position)return;
+    const existing=state.employees.findIndex(x=>x.id===id);
+    const employee={name,id,position,salary};
+    if(existing>=0)state.employees[existing]=employee;else state.employees.push(employee);
+    saveEmployees();mountEmployeeSelect();renderEmployeeList();
+    document.getElementById('employeeForm').reset();
+    document.querySelector('[data-page="slipPage"]').click();
+  });
+  document.getElementById('clearEmployee').addEventListener('click',()=>document.getElementById('employeeForm').reset());
+
+  document.getElementById('payDate').value=new Date().toISOString().slice(0,10);
+  mountRows('income');mountRows('deduction');mountEmployeeSelect();renderEmployeeList();updatePrintDateTime();update();
+})();
+</script>
+</body>
+</html>
