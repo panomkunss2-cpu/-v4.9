@@ -1,0 +1,15 @@
+{
+  "name": "สลิปเงินเดือน Pro",
+  "short_name": "สลิปเงินเดือน Pro",
+  "description": "สร้างใบจ่ายเงินเดือนและเก็บข้อมูลไว้ในเครื่องนี้",
+  "lang": "th",
+  "start_url": "./",
+  "scope": "./",
+  "display": "standalone",
+  "background_color": "#eef6ff",
+  "theme_color": "#0868e8",
+  "icons": [
+    { "src": "payslip-icon.jpg", "sizes": "192x192", "type": "image/jpeg", "purpose": "any" },
+    { "src": "payslip-icon.jpg", "sizes": "512x512", "type": "image/jpeg", "purpose": "any maskable" }
+  ]
+}
