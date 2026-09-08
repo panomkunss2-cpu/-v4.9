@@ -152,11 +152,11 @@ input[readonly]{color:#667b96;background:#f2f6fb}
   <header class="header">
     <div class="brand">
       <img class="brand-icon" src="payslip-icon.jpg" alt="ไอคอนใบจ่ายเงินเดือน">
-      <div><h1>ระบบจัดทำใบจ่ายเงินเดือน</h1><p>จัดการข้อมูล คำนวณยอด และสร้างเอกสารพร้อมพิมพ์ในที่เดียว</p></div>
+      <div><h1>ระบบจัดทำใบจ่ายเงินเดือน</h1><p>สร้างไฟล์ PDF A4 และแชร์ให้ผู้รับผ่าน LINE ได้ทันที</p></div>
     </div>
     <div class="header-actions">
       <div class="live-total"><span>ยอดรับสุทธิปัจจุบัน</span><strong id="summaryNet">0.00 ฿</strong></div>
-      <button class="btn primary" id="printBtn" aria-label="พิมพ์หรือบันทึกใบจ่ายเงินเดือนเป็น PDF">พิมพ์ / บันทึก PDF</button>
+      <button class="btn primary" id="printBtn" aria-label="สร้างไฟล์ PDF A4 และแชร์ใบจ่ายเงินเดือน">สร้าง PDF / ส่ง LINE</button>
     </div>
   </header>
 
@@ -177,7 +177,7 @@ input[readonly]{color:#667b96;background:#f2f6fb}
         <label>ตำแหน่ง<input id="position" readonly></label>
         <label>รอบเงินเดือน<input id="period" placeholder="เช่น 1–30 กันยายน 2026"></label>
         <label>วันที่จ่าย<input id="payDate" type="date"></label>
-        <p class="notice" id="browserFooterNote">วันที่และเวลาจะพิมพ์อยู่ในเอกสารโดยอัตโนมัติ ส่วน ปุ่มดาวน์โหลด PDF จะสร้างไฟล์ PDF โดยตรงจากข้อมูลในระบบ จึงไม่มี URL/เลขหน้าจากเบราว์เซอร์ และยังคงวันที่/เวลาเอกสาร</p>
+        <p class="notice" id="browserFooterNote">กดปุ่มด้านบนเพื่อสร้างไฟล์ PDF ขนาด A4 โดยตรง แล้วเลือก LINE จากเมนูแชร์ของมือถือได้เลย ไม่ต้องเปิดหน้าสั่งพิมพ์</p>
       </div>
 
       <div class="card">
@@ -347,14 +347,56 @@ input[readonly]{color:#667b96;background:#f2f6fb}
   }
 
 
-  function printClean(){
+  let pdfLibrariesPromise;
+  function loadPdfLibraries(){
+    if(pdfLibrariesPromise)return pdfLibrariesPromise;
+    const load=(src,ready)=>new Promise((resolve,reject)=>{
+      if(ready()){resolve();return}
+      const s=document.createElement('script');s.src=src;s.onload=resolve;s.onerror=()=>reject(new Error('โหลดเครื่องมือ PDF ไม่สำเร็จ'));document.head.appendChild(s);
+    });
+    pdfLibrariesPromise=Promise.all([
+      load('https://cdnjs.cloudflare.com/ajax/libs/html2canvas/1.4.1/html2canvas.min.js',()=>typeof window.html2canvas==='function'),
+      load('https://cdnjs.cloudflare.com/ajax/libs/jspdf/2.5.1/jspdf.umd.min.js',()=>window.jspdf&&window.jspdf.jsPDF)
+    ]);
+    return pdfLibrariesPromise;
+  }
+
+  async function createAndSharePdf(){
+    const button=document.getElementById('printBtn');
+    const oldLabel=button.textContent;
+    button.disabled=true;button.textContent='กำลังสร้าง PDF…';
     updatePrintDateTime();
-    // พิมพ์จากหน้าเดิมโดยตรง เพื่อไม่ให้มือถือบล็อก popup หรือเด้งออกจาก PWA
-    if(typeof window.print!=='function'){
-      alert('อุปกรณ์นี้ไม่รองรับการพิมพ์ กรุณาเปิดด้วย Safari หรือ Chrome');
-      return;
+    let exportHost;
+    try{
+      await loadPdfLibraries();
+      // ใช้สำเนาใบจ่ายที่กำหนดขนาด A4 คงที่ เพื่อให้ผลลัพธ์เหมือนกันทุกมือถือ
+      exportHost=document.createElement('div');
+      exportHost.style.cssText='position:fixed;left:-10000px;top:0;width:794px;background:#fff;z-index:-1;';
+      const clone=document.getElementById('paper').cloneNode(true);
+      clone.style.cssText='width:794px;min-height:1123px;margin:0;padding:60px 64px;background:#fff;border:0;border-radius:0;box-shadow:none;overflow:hidden;';
+      exportHost.appendChild(clone);document.body.appendChild(exportHost);
+      const canvas=await window.html2canvas(clone,{scale:2,backgroundColor:'#ffffff',useCORS:true,logging:false});
+      const {jsPDF}=window.jspdf;
+      const pdf=new jsPDF({orientation:'portrait',unit:'mm',format:'a4',compress:true});
+      const pageWidth=210,pageHeight=297;
+      const imageHeight=canvas.height*pageWidth/canvas.width;
+      pdf.addImage(canvas.toDataURL('image/jpeg',.94),'JPEG',0,0,pageWidth,Math.min(imageHeight,pageHeight),undefined,'FAST');
+      const employee=(document.getElementById('previewEmployee').textContent||'พนักงาน').trim().replace(/[^ก-๙a-zA-Z0-9_-]+/g,'_');
+      const fileName='ใบจ่ายเงินเดือน_'+(employee||'พนักงาน')+'.pdf';
+      const blob=pdf.output('blob');
+      const file=new File([blob],fileName,{type:'application/pdf'});
+      if(navigator.share && (!navigator.canShare || navigator.canShare({files:[file]}))){
+        await navigator.share({title:'ใบจ่ายเงินเดือน',text:'ไฟล์ใบจ่ายเงินเดือนขนาด A4',files:[file]});
+      }else{
+        const url=URL.createObjectURL(blob);const a=document.createElement('a');a.href=url;a.download=fileName;a.click();setTimeout(()=>URL.revokeObjectURL(url),1500);
+        alert('บันทึกไฟล์ PDF แล้ว หากต้องการส่ง LINE ให้เปิดไฟล์จากโฟลเดอร์ดาวน์โหลดแล้วกดแชร์');
+      }
+    }catch(err){
+      if(err&&err.name!=='AbortError')alert('สร้าง PDF ไม่สำเร็จ กรุณาตรวจสอบอินเทอร์เน็ตแล้วลองใหม่อีกครั้ง');
+    }finally{
+      if(exportHost)exportHost.remove();
+      button.disabled=false;button.textContent=oldLabel;
     }
-    window.setTimeout(()=>window.print(),80);
   }
 
 
@@ -405,7 +447,7 @@ input[readonly]{color:#667b96;background:#f2f6fb}
   document.getElementById('addDeduction').addEventListener('click',()=>{state.deduction.push(['','']);mountRows('deduction');update()});
   document.getElementById('addBenefit').addEventListener('click',()=>{state.benefit.push(['','']);mountRows('benefit');update()});
   ['companyName','period','payDate'].forEach(id=>document.getElementById(id).addEventListener('input',update));
-  document.getElementById('printBtn').addEventListener('click',printClean);
+  document.getElementById('printBtn').addEventListener('click',createAndSharePdf);
 
   document.getElementById('employeeForm').addEventListener('submit',e=>{
     e.preventDefault();
