@@ -349,17 +349,12 @@ input[readonly]{color:#667b96;background:#f2f6fb}
 
   function printClean(){
     updatePrintDateTime();
-    const paper=document.querySelector('.paper');
-    if(!paper){window.print();return;}
-    const w=window.open('','_blank','width=900,height=1100');
-    if(!w){window.print();return;}
-    const styles=[...document.querySelectorAll('style')].map(s=>s.outerHTML).join('');
-    w.document.open();
-    w.document.write('<!doctype html><html lang="th"><head><meta charset="utf-8"><title></title>'+styles+
-      '<style>@page{size:A4;margin:0}html,body{margin:0!important;background:#fff!important}.paper{display:block!important;box-shadow:none!important;margin:0!important;max-width:none!important}</style>'+
-      '</head><body>'+paper.outerHTML+
-      '<script>window.onload=function(){setTimeout(function(){window.print()},150)}<\/script></body></html>');
-    w.document.close();
+    // พิมพ์จากหน้าเดิมโดยตรง เพื่อไม่ให้มือถือบล็อก popup หรือเด้งออกจาก PWA
+    if(typeof window.print!=='function'){
+      alert('อุปกรณ์นี้ไม่รองรับการพิมพ์ กรุณาเปิดด้วย Safari หรือ Chrome');
+      return;
+    }
+    window.setTimeout(()=>window.print(),80);
   }
 
 
