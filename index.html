@@ -4,6 +4,9 @@
 <meta charset="utf-8">
 <meta name="viewport" content="width=device-width,initial-scale=1">
 <title>ระบบจัดทำใบจ่ายเงินเดือน</title>
+<meta name="theme-color" content="#075ed1">
+<meta name="description" content="สร้าง จัดการ และพิมพ์ใบจ่ายเงินเดือนแบบมืออาชีพ">
+<link rel="icon" type="image/jpeg" href="payslip-icon.jpg">
 <style>
 @import url('https://fonts.googleapis.com/css2?family=Noto+Sans+Thai:wght@400;500;600;700&display=swap');
 :root{--ink:#20252b;--muted:#667085;--line:#d9dee4;--bg:#f5f7f9;--card:#fff;--accent:#1f2937}
@@ -48,13 +51,111 @@ table{width:100%;border-collapse:collapse;margin:10px 0 20px}th,td{border:1px so
   @page{size:A4;margin:0}
 }
 </style>
+<style>
+:root{
+  --ink:#10233f;--muted:#63748b;--line:#dce7f5;--bg:#eef6ff;--card:#fff;
+  --accent:#0969e8;--accent-2:#16b8f3;--navy:#0b2c5b;--soft:#f4f9ff;
+  --success:#08a66c;--danger:#d84a5a;--shadow:0 18px 50px rgba(20,74,139,.11)
+}
+html{scroll-behavior:smooth}
+body{
+  min-height:100vh;
+  background:
+    radial-gradient(circle at 8% 0%,rgba(31,190,246,.18),transparent 28rem),
+    radial-gradient(circle at 92% 15%,rgba(18,91,220,.12),transparent 30rem),
+    linear-gradient(180deg,#f7fbff 0,#edf5ff 100%);
+}
+button{transition:transform .18s ease,box-shadow .18s ease,background .18s ease,border-color .18s ease}
+button:active{transform:translateY(1px)}
+button:focus-visible,input:focus-visible,select:focus-visible{outline:3px solid rgba(22,184,243,.24);outline-offset:2px}
+.app{max-width:1240px;padding:28px 24px 20px}
+.header{
+  position:relative;overflow:hidden;margin-bottom:18px;padding:20px 22px;
+  color:#fff;border:1px solid rgba(255,255,255,.4);border-radius:22px;
+  background:linear-gradient(125deg,#075aca 0%,#087be8 58%,#19baf3 100%);
+  box-shadow:0 20px 48px rgba(0,91,210,.22)
+}
+.header:after{content:"";position:absolute;width:240px;height:240px;border-radius:50%;right:-80px;top:-145px;background:rgba(255,255,255,.13)}
+.brand{display:flex;align-items:center;gap:15px;position:relative;z-index:1}
+.brand-icon{width:62px;height:62px;object-fit:cover;border-radius:16px;border:3px solid rgba(255,255,255,.74);box-shadow:0 9px 24px rgba(0,49,120,.2)}
+.header h1{font-size:clamp(22px,3vw,30px);letter-spacing:-.02em}
+.header p{color:rgba(255,255,255,.82);font-size:14px;margin-top:5px}
+.header-actions{display:flex;align-items:center;gap:10px;position:relative;z-index:1}
+.live-total{min-width:150px;padding:8px 12px;text-align:right;border-radius:12px;background:rgba(3,45,111,.24);border:1px solid rgba(255,255,255,.19)}
+.live-total span{display:block;font-size:11px;color:rgba(255,255,255,.7)}
+.live-total strong{display:block;font-size:17px}
+.nav{display:inline-flex;gap:5px;margin:0 0 18px;padding:5px;background:rgba(255,255,255,.72);border:1px solid var(--line);border-radius:14px;box-shadow:0 8px 30px rgba(19,71,131,.07);backdrop-filter:blur(12px)}
+.nav button{border:0;background:transparent;color:var(--muted);padding:10px 16px;border-radius:10px;font-weight:600}
+.nav button.active{background:#fff;color:var(--accent);box-shadow:0 5px 16px rgba(19,77,146,.12)}
+.grid{grid-template-columns:minmax(0,.88fr) minmax(0,1.12fr);gap:20px;align-items:start}
+.card{border:1px solid rgba(205,222,242,.86);border-radius:20px;padding:22px;box-shadow:var(--shadow)}
+.card h2{font-size:19px;color:var(--navy);display:flex;align-items:center;gap:9px;margin-bottom:18px}
+.card h2:before{content:"";display:block;width:5px;height:22px;border-radius:9px;background:linear-gradient(var(--accent-2),var(--accent))}
+.card h3{color:#334a69;margin-top:2px}
+label{color:#304866;font-size:13px;margin-bottom:14px}
+input,select{min-height:44px;border:1px solid #cadbee;border-radius:11px;padding:10px 12px;color:var(--ink);background:#fbfdff;transition:border-color .18s,box-shadow .18s,background .18s}
+input:hover,select:hover{border-color:#9ebce0;background:#fff}
+input:focus,select:focus{border-color:var(--accent);background:#fff;box-shadow:0 0 0 4px rgba(9,105,232,.08)}
+input[readonly]{color:#667b96;background:#f2f6fb}
+.row{grid-template-columns:minmax(0,1fr) 145px 42px;gap:9px}
+.row input{margin:0}
+.row button{color:#7890aa;background:#f0f5fb;font-size:21px}
+.row button:hover{color:#fff;background:var(--danger)}
+.btn{min-height:42px;border-color:#cadef2;color:#34506f;border-radius:11px;font-weight:600;background:#fff}
+.btn:hover{border-color:#9fc4ec;box-shadow:0 5px 16px rgba(22,84,155,.1)}
+.btn.primary{color:#fff;border:0;background:linear-gradient(120deg,#0865df,#149eea);box-shadow:0 8px 20px rgba(1,91,210,.22)}
+.header .btn.primary{color:#075fce;background:#fff;box-shadow:0 8px 24px rgba(0,48,111,.2)}
+.btn.danger{color:var(--danger);border-color:#f0cfd4}
+.notice{line-height:1.65;padding:10px 12px;border-radius:10px;background:var(--soft)}
+.totals{margin-top:20px;border:0;padding:15px 16px;border-radius:15px;background:linear-gradient(145deg,#f3f8ff,#eaf4ff)}
+.total{color:#48617e}.total b{color:var(--navy)}
+.total.net{margin:13px -4px -4px;padding:13px 14px;color:#fff;border-radius:12px;background:linear-gradient(110deg,#075fcf,#0b8dea);box-shadow:0 8px 18px rgba(7,99,207,.18)}
+.employee-list{gap:10px}.employee-item{border-color:var(--line);border-radius:14px;padding:14px;background:#fbfdff}
+.employee-main strong{color:var(--navy);font-size:15px}.employee-main span{display:block;margin-top:3px;line-height:1.5}
+.empty{border-color:#bed2e8;background:#f8fbff}
+.paper{
+  position:relative;overflow:hidden;width:210mm;min-height:297mm;margin:24px auto 48px;padding:16mm 17mm;
+  color:#1c304b;border:1px solid #dbe7f4;border-radius:4px;box-shadow:0 28px 75px rgba(15,58,112,.18)
+}
+.paper:before{content:"";position:absolute;inset:0 0 auto;height:8px;background:linear-gradient(90deg,#0868e8,#18baf3)}
+.doc-head{display:flex;align-items:center;gap:14px;padding-bottom:17px;margin-bottom:20px;border-bottom:2px solid #e1edf9}
+.doc-logo{width:58px;height:58px;object-fit:cover;border-radius:14px;box-shadow:0 7px 18px rgba(9,105,232,.16)}
+.doc-title{flex:1}.paper .doc-title h2{text-align:left;margin:0;color:#0b2c5b;font-size:24px}.doc-title p{margin:2px 0 0;color:#6c7f97;font-size:11px;letter-spacing:.08em}
+.company{text-align:right;font-size:15px;margin:0;max-width:36%}
+.meta{gap:10px 24px;margin-bottom:21px;padding:15px;border-radius:12px;background:#f4f9ff;font-size:13px}
+.meta b{color:#5c718a;margin-right:4px}
+.paper h3{font-size:14px;color:#0b4fa7;margin:17px 0 7px}
+.paper table{font-size:12px;margin:7px 0 15px}
+.paper th,.paper td{border-color:#dbe5f0;padding:8px 10px}.paper th{background:#f6faff;color:#3d5572}
+.paper table:last-of-type{margin-top:22px;border-radius:10px;overflow:hidden}
+.paper table:last-of-type tr:last-child th{font-size:15px;color:#fff;background:#0868e8;border-color:#0868e8}
+.doc-footer{color:#70839a;border-color:#dce7f2}
+@media(max-width:850px){
+  .app{padding:14px 12px}.header{align-items:flex-start;padding:16px;border-radius:18px}.brand-icon{width:52px;height:52px;border-radius:14px}
+  .header-actions{width:100%;justify-content:space-between}.header{flex-wrap:wrap}.live-total{text-align:left;min-width:130px}.header .btn.primary{flex:1}
+  .nav{display:flex;width:100%}.nav button{flex:1}.grid{grid-template-columns:1fr}.card{padding:17px;border-radius:16px}
+  .paper{width:calc(100% - 24px);min-height:auto;margin:18px auto 32px;padding:24px 18px}.doc-head{align-items:flex-start;flex-wrap:wrap}.company{max-width:100%;width:100%;text-align:left}.meta{grid-template-columns:1fr}.row{grid-template-columns:minmax(0,1fr) 112px 40px}
+}
+@media(max-width:480px){.brand{align-items:flex-start}.brand-icon{width:48px;height:48px}.header h1{font-size:20px}.header p{font-size:12px}.live-total{display:none}.row{grid-template-columns:minmax(0,1fr) 96px 38px}.paper{font-size:12px}.doc-logo{width:48px;height:48px}.paper .doc-title h2{font-size:19px}}
+@media print{
+  .paper{border:0;border-radius:0;box-shadow:none;margin:0;width:210mm;min-height:297mm;padding:14mm 16mm}
+  .paper:before{height:6px}.doc-logo{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+  .meta,.paper th,.paper table:last-of-type tr:last-child th{print-color-adjust:exact;-webkit-print-color-adjust:exact}
+}
+</style>
 </head>
 <body>
 <div class="app">
-  <div class="header">
-    <div><h1>ระบบจัดทำใบจ่ายเงินเดือน</h1><p>เลือกพนักงานแล้วระบบเติมรหัสและตำแหน่งให้อัตโนมัติ</p></div>
-    <button class="btn primary" id="printBtn">พิมพ์ / บันทึก PDF</button>
-  </div>
+  <header class="header">
+    <div class="brand">
+      <img class="brand-icon" src="payslip-icon.jpg" alt="ไอคอนใบจ่ายเงินเดือน">
+      <div><h1>ระบบจัดทำใบจ่ายเงินเดือน</h1><p>จัดการข้อมูล คำนวณยอด และสร้างเอกสารพร้อมพิมพ์ในที่เดียว</p></div>
+    </div>
+    <div class="header-actions">
+      <div class="live-total"><span>ยอดรับสุทธิปัจจุบัน</span><strong id="summaryNet">0.00 ฿</strong></div>
+      <button class="btn primary" id="printBtn" aria-label="พิมพ์หรือบันทึกใบจ่ายเงินเดือนเป็น PDF">พิมพ์ / บันทึก PDF</button>
+    </div>
+  </header>
 
   <div class="nav">
     <button class="active" data-page="slipPage">สร้างใบจ่ายเงิน</button>
@@ -118,8 +219,11 @@ table{width:100%;border-collapse:collapse;margin:10px 0 20px}th,td{border:1px so
 </div>
 
 <div class="paper" id="paper">
-  <h2>ใบจ่ายเงินเดือน / PAYSLIP</h2>
-  <div class="company" id="previewCompany"></div>
+  <div class="doc-head">
+    <img class="doc-logo" src="payslip-icon.jpg" alt="">
+    <div class="doc-title"><h2>ใบจ่ายเงินเดือน</h2><p>PAYSLIP · PAYMENT STATEMENT</p></div>
+    <div class="company" id="previewCompany"></div>
+  </div>
   <div class="meta">
     <div><b>พนักงาน:</b> <span id="previewEmployee"></span></div>
     <div><b>รหัสพนักงาน:</b> <span id="previewEmployeeId"></span></div>
@@ -286,6 +390,7 @@ table{width:100%;border-collapse:collapse;margin:10px 0 20px}th,td{border:1px so
     document.getElementById('dedTotal').textContent=money(ded);
     document.getElementById('benefitTotal').textContent=money(benefitTotal);
     document.getElementById('net').textContent=money(net);
+    document.getElementById('summaryNet').textContent=money(net);
     document.getElementById('pGross').textContent=money(gross);
     document.getElementById('pDed').textContent=money(ded);
     document.getElementById('pBenefit').textContent=money(benefitTotal);
@@ -302,7 +407,7 @@ table{width:100%;border-collapse:collapse;margin:10px 0 20px}th,td{border:1px so
   document.getElementById('addDeduction').addEventListener('click',()=>{state.deduction.push(['','']);mountRows('deduction');update()});
   document.getElementById('addBenefit').addEventListener('click',()=>{state.benefit.push(['','']);mountRows('benefit');update()});
   ['companyName','period','payDate'].forEach(id=>document.getElementById(id).addEventListener('input',update));
-  document.getElementById('printBtn').addEventListener('click',()=>window.print());
+  document.getElementById('printBtn').addEventListener('click',printClean);
 
   document.getElementById('employeeForm').addEventListener('submit',e=>{
     e.preventDefault();
